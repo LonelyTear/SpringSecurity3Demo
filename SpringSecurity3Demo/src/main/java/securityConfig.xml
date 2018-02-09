@@ -22,7 +22,7 @@
 			login-page="/login.jsp"
 			authentication-failure-url="/authentication-failure-url.jsp" 
 			default-target-url="/index.jsp"
-			always-use-default-target="true"
+			always-use-default-target="false"
 			username-parameter="username"
 			password-parameter="password"/>
 		<session-management>
@@ -36,21 +36,22 @@
 		<!-- @@登出一定要和登入是同一个,不然登录后返回上一部再登录会跳转错误 ,所以要取名为login.jsp,而不能取为logout.jsp-->
 		<logout logout-url="/j_spring_security_logout"	logout-success-url="/login.jsp?logout=logout-success"  />
 		<!--增加一个filter，这点与 Acegi是不一样的，不能修改默认的filter了， 这个filter位于FILTER_SECURITY_INTERCEPTOR之前 -->
-		<!-- <custom-filter ref="myFilter" before="FILTER_SECURITY_INTERCEPTOR" /> -->
+		<custom-filter ref="myFilter" before="FILTER_SECURITY_INTERCEPTOR" />
 	</http>
 
 	<!--一个自定义的filter，必须包含 authenticationManager,accessDecisionManager,securityMetadataSource三个属性， 
 		我们的所有控制将在这三个类中实现，解释详见具体配置 -->
-		<!-- 
+		
 	<beans:bean id="myFilter"
 		class="com.erdangjiade.spring.security.MyFilterSecurityInterceptor">
 		<beans:property name="authenticationManager" ref="authenticationManager" />
 		<beans:property name="accessDecisionManager" ref="myAccessDecisionManagerBean" />
 		<beans:property name="securityMetadataSource" ref="securityMetadataSource" />
 	</beans:bean>
- -->
+
 
 	<!--用 户验证方式一:直接xml指定 -->
+	<!-- 
 	<authentication-manager>
 		<authentication-provider>
 			<user-service>
@@ -59,15 +60,15 @@
 			</user-service>
 		</authentication-provider>
 	</authentication-manager>
-	
+	 -->
 	<!--用户验证方式二:认证管理器，实现用户认证的入口，主要实现UserDetailsService接口即可 -->
-	<!-- 
+	
 	<authentication-manager alias="authenticationManager">
 		<authentication-provider user-service-ref="myUserDetailService">
-			<password-encoder hash="md5" />
+			<!-- <password-encoder hash="md5" /> -->
 		</authentication-provider>
 	</authentication-manager>
- -->
+
 	
 	<!--在这个类中，你就可以从数据库中读入用户的密码，角色信息，是否锁定，账号是否过期等 -->
 	<beans:bean id="myUserDetailService" class="com.erdangjiade.spring.security.MyUserDetailService" />
@@ -85,5 +86,5 @@
 	<beans:bean class="org.springframework.security.authentication.event.LoggerListener"/>  
 	<beans:bean class="org.springframework.security.access.event.LoggerListener"/> 
 	
-
+	
 </beans:beans>
