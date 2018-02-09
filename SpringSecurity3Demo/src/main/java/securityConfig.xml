@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/security
+	http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+
+
+	<!--登录页面不过滤 -->
+	<http pattern="/index.jsp" security="none" />
+	<http pattern="/login.jsp" security="none" />
+	<http pattern="/logout.jsp" security="none" />
+	<!-- <http pattern="/j_spring_security_logout" security="none" /> 不能加,加了报404 -->
+	
+	<http auto-config="true" access-denied-page="/access-denied-page.jsp">
+		<intercept-url pattern="/admin.jsp" access="ROLE_ADMIN" />
+		<intercept-url pattern="/other.jsp" access="ROLE_USER,ROLE_ADMIN" />
+		<intercept-url pattern="/**" 		access="ROLE_USER" />
+		<form-login  
+			login-processing-url="/j_spring_security_check"
+			login-page="/login.jsp"
+			authentication-failure-url="/authentication-failure-url.jsp" 
+			default-target-url="/index.jsp"
+			always-use-default-target="true"
+			username-parameter="username"
+			password-parameter="password"/>
+		<session-management>
+			<concurrency-control max-sessions="1"
+				error-if-maximum-exceeded="false" />
+		</session-management>
+		<!-- 研究发现,Security3默认情况下CSRF保护被禁用, 如果开启CSRF，必须使用post方式请求/j_spring_security_logout才允许退出,然而开启后我的配置报404或403,原因不详@@ -->
+		<!-- csrf ref http://blog.csdn.net/mrleeyongsheng/article/details/78886184 -->
+		<!-- csrf ref https://www.yiibai.com/spring-security/spring-security-form-login-example.html -->
+		<!-- <csrf />  -->  <!-- 去掉本行注释即开启CSRF -->
+		<!-- @@登出一定要和登入是同一个,不然登录后返回上一部再登录会跳转错误 ,所以要取名为login.jsp,而不能取为logout.jsp-->
+		<logout logout-url="/j_spring_security_logout"	logout-success-url="/login.jsp?logout=logout-success"  />
+		<!--增加一个filter，这点与 Acegi是不一样的，不能修改默认的filter了， 这个filter位于FILTER_SECURITY_INTERCEPTOR之前 -->
+		<!-- <custom-filter ref="myFilter" before="FILTER_SECURITY_INTERCEPTOR" /> -->
+	</http>
+
+	<!--一个自定义的filter，必须包含 authenticationManager,accessDecisionManager,securityMetadataSource三个属性， 
+		我们的所有控制将在这三个类中实现，解释详见具体配置 -->
+		<!-- 
+	<beans:bean id="myFilter"
+		class="com.erdangjiade.spring.security.MyFilterSecurityInterceptor">
+		<beans:property name="authenticationManager" ref="authenticationManager" />
+		<beans:property name="accessDecisionManager" ref="myAccessDecisionManagerBean" />
+		<beans:property name="securityMetadataSource" ref="securityMetadataSource" />
+	</beans:bean>
+ -->
+
+	<!--用 户验证方式一:直接xml指定 -->
+	<authentication-manager>
+		<authentication-provider>
+			<user-service>
+				<user name="admin" password="admin" authorities="ROLE_ADMIN" />
+				<user name="user" password="user" authorities="ROLE_USER" />
+			</user-service>
+		</authentication-provider>
+	</authentication-manager>
+	
+	<!--用户验证方式二:认证管理器，实现用户认证的入口，主要实现UserDetailsService接口即可 -->
+	<!-- 
+	<authentication-manager alias="authenticationManager">
+		<authentication-provider user-service-ref="myUserDetailService">
+			<password-encoder hash="md5" />
+		</authentication-provider>
+	</authentication-manager>
+ -->
+	
+	<!--在这个类中，你就可以从数据库中读入用户的密码，角色信息，是否锁定，账号是否过期等 -->
+	<beans:bean id="myUserDetailService" class="com.erdangjiade.spring.security.MyUserDetailService" />
+
+
+	<!--访问决策器，决定某个用户具有的角色，是否有足够的权限去访问某个资源 -->
+	<beans:bean id="myAccessDecisionManagerBean"	class="com.erdangjiade.spring.security.MyAccessDecisionManager">
+	</beans:bean>
+
+	<!--资源源数据定义，将所有的资源和权限对应关系建立起来，即定义某一资源可以被哪些角色访问 -->
+	<beans:bean id="securityMetadataSource"
+		class="com.erdangjiade.spring.security.MyInvocationSecurityMetadataSource" />
+
+	<!-- security 日志 -->
+	<beans:bean class="org.springframework.security.authentication.event.LoggerListener"/>  
+	<beans:bean class="org.springframework.security.access.event.LoggerListener"/> 
+	
+
+</beans:beans>
